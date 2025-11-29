@@ -1,0 +1,427 @@
+/**
+ * 安親班學生訂便當系統 - Google Apps Script API
+ * 
+ * 這個腳本提供兩個主要功能：
+ * 1. doGet() - 讀取設定資料（菜單、餐點、加購項目）
+ * 2. doPost() - 寫入訂單資料到訂單工作表
+ */
+
+/**
+ * 處理 GET 請求 - 讀取設定資料
+ * 當前端應用程式需要載入菜單和餐點資料時會呼叫這個函數
+ * 
+ * @param {Object} e - 事件參數（本函數不使用）
+ * @return {TextOutput} JSON 格式的回應
+ */
+function doGet(e) {
+  try {
+    // 取得目前的試算表
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // === 步驟 1: 讀取設定工作表 ===
+    const configSheet = ss.getSheetByName('設定');
+    if (!configSheet) {
+      throw new Error('找不到「設定」工作表');
+    }
+    
+    // 讀取所有設定資料（包含標題行）
+    const configData = configSheet.getDataRange().getValues();
+    
+    // 尋找啟用的餐廳（從第 2 行開始，跳過標題行）
+    let todayRestaurant = null;
+    let menuImageUrl = null;
+    
+    for (let i = 1; i < configData.length; i++) {
+      const row = configData[i];
+      // row[0] = 餐廳名稱, row[1] = 菜單圖片網址, row[2] = 啟用
+      
+      // 檢查是否啟用（TRUE 或 true 或 1）
+      const isEnabled = row[2] === true || row[2] === 'TRUE' || row[2] === 1;
+      
+      if (isEnabled && row[0]) {
+        todayRestaurant = row[0];
+        menuImageUrl = row[1];
+        break;  // 找到第一個啟用的餐廳就停止
+      }
+    }
+    
+    // 檢查是否找到啟用的餐廳
+    if (!todayRestaurant) {
+      throw new Error('請在設定工作表中將至少一家餐廳的「啟用」欄位設為 TRUE');
+    }
+    
+    if (!menuImageUrl) {
+      throw new Error('啟用的餐廳缺少菜單圖片網址');
+    }
+    
+    // === 步驟 2: 讀取餐點工作表 ===
+    const mealsSheet = ss.getSheetByName('餐點');
+    if (!mealsSheet) {
+      throw new Error('找不到「餐點」工作表');
+    }
+    
+    // 取得所有餐點資料（包含標題行）
+    const mealsData = mealsSheet.getDataRange().getValues();
+    
+    // 解析餐點資料，只保留今日餐廳的餐點
+    const meals = parseMealsData(mealsData, todayRestaurant);
+    
+    // === 步驟 3: 讀取加購工作表 ===
+    const addonsSheet = ss.getSheetByName('加購');
+    if (!addonsSheet) {
+      throw new Error('找不到「加購」工作表');
+    }
+    
+    // 取得所有加購項目資料（包含標題行）
+    const addonsData = addonsSheet.getDataRange().getValues();
+    
+    // 解析加購項目資料，只保留今日餐廳的加購項目
+    const addons = parseAddonsData(addonsData, todayRestaurant);
+    
+    // === 步驟 4: 組合設定資料 ===
+    // 為每個餐點關聯對應的加購項目
+    const mealsWithAddons = meals.map(meal => {
+      // 根據餐點的 addonIds 篩選出對應的加購項目
+      const mealAddons = addons.filter(addon => 
+        meal.addonIds.includes(addon.id)
+      );
+      
+      return {
+        id: meal.id,
+        name: meal.name,
+        price: meal.price,
+        options: meal.options,
+        addons: mealAddons
+      };
+    });
+    
+    // 組合完整的設定物件
+    const config = {
+      restaurantName: todayRestaurant,
+      menuImageUrl: menuImageUrl,
+      meals: mealsWithAddons
+    };
+    
+    // === 步驟 5: 回傳 JSON 格式的成功回應 ===
+    return ContentService
+      .createTextOutput(JSON.stringify({ 
+        success: true, 
+        data: config 
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    // 發生錯誤時，回傳錯誤訊息
+    Logger.log('doGet 錯誤: ' + error.toString());
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({ 
+        success: false, 
+        error: error.toString() 
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 解析餐點資料
+ * 從餐點工作表的原始資料中，篩選出指定餐廳的餐點
+ * 
+ * @param {Array} data - 餐點工作表的所有資料（二維陣列）
+ * @param {string} restaurantName - 要篩選的餐廳名稱
+ * @return {Array} 解析後的餐點陣列
+ */
+function parseMealsData(data, restaurantName) {
+  const meals = [];
+  
+  // 從第 2 行開始（索引 1），跳過標題行
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    
+    // 檢查是否為今日餐廳的餐點
+    // row[0] = 餐廳名稱, row[1] = 餐點ID
+    if (row[0] === restaurantName && row[1]) {
+      // 解析備註選項（用逗號分隔的字串）
+      const options = row[4] ? 
+        row[4].toString().split(',').map(s => s.trim()) : 
+        [];
+      
+      // 解析加購項目ID（用逗號分隔的字串）
+      const addonIds = row[5] ? 
+        row[5].toString().split(',').map(s => s.trim()) : 
+        [];
+      
+      meals.push({
+        id: row[1],           // B欄：餐點ID
+        name: row[2],         // C欄：餐點名稱
+        price: row[3],        // D欄：餐點價格
+        options: options,     // E欄：備註選項（陣列）
+        addonIds: addonIds    // F欄：加購項目ID（陣列）
+      });
+    }
+  }
+  
+  return meals;
+}
+
+/**
+ * 解析加購項目資料
+ * 從加購工作表的原始資料中，篩選出指定餐廳的加購項目
+ * 
+ * @param {Array} data - 加購工作表的所有資料（二維陣列）
+ * @param {string} restaurantName - 要篩選的餐廳名稱
+ * @return {Array} 解析後的加購項目陣列
+ */
+function parseAddonsData(data, restaurantName) {
+  const addons = [];
+  
+  // 從第 2 行開始（索引 1），跳過標題行
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    
+    // 檢查是否為今日餐廳的加購項目
+    // row[0] = 餐廳名稱, row[1] = 加購ID
+    if (row[0] === restaurantName && row[1]) {
+      addons.push({
+        id: row[1],      // B欄：加購ID
+        name: row[2],    // C欄：加購名稱
+        price: row[3]    // D欄：加購價格
+      });
+    }
+  }
+  
+  return addons;
+}
+
+/**
+ * 測試函數 - 顯示 doGet 的 JSON 回應
+ * 這個函數會執行 doGet 並在執行記錄中顯示 JSON 結果
+ * 
+ * 使用方法：
+ * 1. 在函數選擇下拉選單中選擇 testDoGetJSON
+ * 2. 點擊「執行」按鈕
+ * 3. 查看下方的「執行記錄」
+ */
+function testDoGetJSON() {
+  Logger.log('========================================');
+  Logger.log('測試 doGet 函數');
+  Logger.log('========================================');
+  Logger.log('');
+  
+  try {
+    // 執行 doGet 函數
+    const result = doGet();
+    
+    // 取得 JSON 字串
+    const jsonString = result.getContent();
+    
+    // 解析 JSON
+    const jsonObject = JSON.parse(jsonString);
+    
+    // 美化顯示 JSON
+    Logger.log('📋 JSON 回應：');
+    Logger.log(JSON.stringify(jsonObject, null, 2));
+    
+    Logger.log('');
+    Logger.log('========================================');
+    
+    // 如果成功，顯示摘要資訊
+    if (jsonObject.success) {
+      Logger.log('✅ 執行成功！');
+      Logger.log('');
+      Logger.log('📊 資料摘要：');
+      Logger.log('  餐廳名稱: ' + jsonObject.data.restaurantName);
+      Logger.log('  菜單圖片: ' + jsonObject.data.menuImageUrl);
+      Logger.log('  餐點數量: ' + jsonObject.data.meals.length);
+      Logger.log('');
+      
+      // 顯示每個餐點的詳細資訊
+      jsonObject.data.meals.forEach((meal, index) => {
+        Logger.log('  餐點 ' + (index + 1) + ': ' + meal.name);
+        Logger.log('    價格: NT$ ' + meal.price);
+        Logger.log('    備註選項: ' + meal.options.join(', '));
+        Logger.log('    加購項目: ' + meal.addons.map(a => a.name + ' (NT$ ' + a.price + ')').join(', '));
+        Logger.log('');
+      });
+    } else {
+      Logger.log('❌ 執行失敗');
+      Logger.log('錯誤訊息: ' + jsonObject.error);
+    }
+    
+  } catch (error) {
+    Logger.log('❌ 發生錯誤: ' + error.toString());
+  }
+  
+  Logger.log('========================================');
+}
+
+/**
+ * 處理 POST 請求 - 寫入訂單資料
+ * 當學生提交訂單時會呼叫這個函數
+ * 
+ * @param {Object} e - 事件參數，包含 POST 的資料
+ * @return {TextOutput} JSON 格式的回應
+ */
+function doPost(e) {
+  try {
+    // === 步驟 1: 解析前端傳來的資料 ===
+    if (!e || !e.postData || !e.postData.contents) {
+      throw new Error('沒有收到訂單資料');
+    }
+    
+    // 解析 JSON 字串
+    const requestData = JSON.parse(e.postData.contents);
+    
+    if (!requestData.order) {
+      throw new Error('訂單資料格式錯誤');
+    }
+    
+    const order = requestData.order;
+    
+    // === 步驟 2: 驗證訂單資料 ===
+    if (!order.studentName || order.studentName.trim() === '') {
+      throw new Error('學生姓名不能為空');
+    }
+    
+    if (!order.mealName) {
+      throw new Error('請選擇餐點');
+    }
+    
+    if (!order.restaurantName) {
+      throw new Error('餐廳名稱不能為空');
+    }
+    
+    // === 步驟 3: 取得訂單工作表 ===
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ordersSheet = ss.getSheetByName('訂單');
+    
+    if (!ordersSheet) {
+      throw new Error('找不到「訂單」工作表');
+    }
+    
+    // === 步驟 4: 準備要寫入的資料 ===
+    // 格式化備註選項（陣列轉字串）
+    const optionsString = order.selectedOptions && order.selectedOptions.length > 0
+      ? order.selectedOptions.join(', ')
+      : '';
+    
+    // 格式化加購項目（陣列轉字串）
+    const addonsString = order.selectedAddons && order.selectedAddons.length > 0
+      ? order.selectedAddons.map(addon => addon.name).join(', ')
+      : '';
+    
+    // 計算加購金額總和
+    const addonsTotal = order.selectedAddons && order.selectedAddons.length > 0
+      ? order.selectedAddons.reduce((sum, addon) => sum + addon.price, 0)
+      : 0;
+    
+    // 組合要寫入的資料列
+    const rowData = [
+      order.timestamp,           // A欄：時間戳記
+      order.restaurantName,      // B欄：餐廳名稱
+      order.studentName,         // C欄：學生姓名
+      order.mealName,            // D欄：餐點名稱
+      order.mealPrice,           // E欄：餐點價格
+      optionsString,             // F欄：備註選項
+      addonsString,              // G欄：加購項目
+      addonsTotal,               // H欄：加購金額
+      order.totalAmount          // I欄：總金額
+    ];
+    
+    // === 步驟 5: 附加訂單到工作表 ===
+    // 使用 appendRow 將資料附加到最後一行（不會覆蓋既有資料）
+    ordersSheet.appendRow(rowData);
+    
+    // === 步驟 6: 記錄成功訊息 ===
+    Logger.log('訂單已成功寫入：' + order.studentName + ' - ' + order.mealName);
+    
+    // === 步驟 7: 回傳成功回應 ===
+    return ContentService
+      .createTextOutput(JSON.stringify({ 
+        success: true, 
+        message: '訂單已成功提交！' 
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    // 發生錯誤時，記錄並回傳錯誤訊息
+    Logger.log('doPost 錯誤: ' + error.toString());
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({ 
+        success: false, 
+        error: error.toString() 
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 測試函數 - 測試 doPost 函數
+ * 這個函數會模擬前端提交訂單，測試 doPost 是否正常運作
+ * 
+ * 使用方法：
+ * 1. 在函數選擇下拉選單中選擇 testDoPost
+ * 2. 點擊「執行」按鈕
+ * 3. 查看「執行記錄」和「訂單」工作表
+ */
+function testDoPost() {
+  Logger.log('========================================');
+  Logger.log('測試 doPost 函數');
+  Logger.log('========================================');
+  Logger.log('');
+  
+  // 建立測試訂單資料
+  const testOrder = {
+    order: {
+      restaurantName: '美味麵館',
+      studentName: '測試學生',
+      mealId: 'meal_001',
+      mealName: '紅燒牛肉麵',
+      mealPrice: 80,
+      selectedOptions: ['加辣', '粗麵'],
+      selectedAddons: [
+        { id: 'addon_001', name: '加麵', price: 10 },
+        { id: 'addon_002', name: '焗烤', price: 20 }
+      ],
+      totalAmount: 110,
+      timestamp: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+    }
+  };
+  
+  Logger.log('📝 測試訂單資料：');
+  Logger.log(JSON.stringify(testOrder, null, 2));
+  Logger.log('');
+  
+  // 模擬 POST 請求
+  const mockEvent = {
+    postData: {
+      contents: JSON.stringify(testOrder)
+    }
+  };
+  
+  try {
+    // 執行 doPost
+    const result = doPost(mockEvent);
+    const response = JSON.parse(result.getContent());
+    
+    Logger.log('📋 回應結果：');
+    Logger.log(JSON.stringify(response, null, 2));
+    Logger.log('');
+    
+    if (response.success) {
+      Logger.log('✅ 測試成功！訂單已寫入「訂單」工作表');
+      Logger.log('');
+      Logger.log('請到 Google Sheet 的「訂單」工作表查看新增的訂單記錄');
+    } else {
+      Logger.log('❌ 測試失敗');
+      Logger.log('錯誤訊息: ' + response.error);
+    }
+    
+  } catch (error) {
+    Logger.log('❌ 發生錯誤: ' + error.toString());
+  }
+  
+  Logger.log('');
+  Logger.log('========================================');
+}
