@@ -4,7 +4,8 @@
  */
 
 import { useState } from 'react';
-import { testFetchConfiguration, testSubmitOrder } from './services/apiService.test';
+import { fetchConfiguration, submitOrder } from './services/apiService';
+import type { Order } from './types';
 
 export default function TestAPI() {
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ export default function TestAPI() {
     setResult('測試中...');
     
     try {
-      const config = await testFetchConfiguration();
+      const config = await fetchConfiguration();
       setResult(`✅ 讀取設定成功！\n餐廳: ${config.restaurantName}\n餐點數量: ${config.meals.length}`);
     } catch (error) {
       setResult(`❌ 測試失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
@@ -29,7 +30,20 @@ export default function TestAPI() {
     setResult('測試中...');
     
     try {
-      const response = await testSubmitOrder();
+      // 建立測試訂單
+      const testOrder: Order = {
+        restaurantName: '測試餐廳',
+        studentName: '測試學生',
+        mealId: 'test_001',
+        mealName: '測試餐點',
+        mealPrice: 100,
+        selectedOptions: ['測試選項'],
+        selectedAddons: [{ id: 'addon_001', name: '測試加購', price: 20 }],
+        totalAmount: 120,
+        timestamp: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+      };
+      
+      const response = await submitOrder(testOrder);
       setResult(`✅ 提交訂單成功！\n${response.message}\n\n請到 Google Sheet 查看訂單記錄`);
     } catch (error) {
       setResult(`❌ 測試失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);

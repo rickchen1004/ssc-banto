@@ -5,9 +5,9 @@
  * 屬性測試：驗證在未選擇餐點時，備註選項和加購項目的選擇功能應該被禁用
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test } from 'vitest';
 import fc from 'fast-check';
-import type { MealItem, AddonItem } from '../types';
+import type { MealItem } from '../types';
 
 /**
  * 模擬 useOrderState 的核心邏輯

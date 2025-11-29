@@ -3,7 +3,7 @@
  * 使用 fast-check 進行屬性基礎測試
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'vitest';
 import { fc } from '@fast-check/vitest';
 import { calculateTotal, formatCurrency, toggleAddon, toggleOption } from './calculations';
 import type { MealItem, AddonItem } from '../types';
