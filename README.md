@@ -1,73 +1,194 @@
-# React + TypeScript + Vite
+# 安親班學生訂便當系統
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一個簡單易用的學生午餐訂購系統，讓學生能夠透過網頁介面選擇餐點、填寫訂單，並將訂單自動記錄到 Google Sheets。
 
-Currently, two official plugins are available:
+## 📋 專案特色
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🍱 **多餐廳支援** - 在 Google Sheets 中管理多家餐廳，輕鬆切換每日供應商
+- 📱 **響應式設計** - 支援手機、平板、桌面等各種裝置
+- 🎨 **友善介面** - 清晰易懂的操作流程，適合小學生使用
+- 📊 **Google Sheets 整合** - 無需資料庫，直接使用 Google Sheets 管理資料
+- ✅ **即時驗證** - 自動計算金額，防止錯誤提交
+- 🧪 **完整測試** - 包含單元測試和屬性基礎測試 (Property-Based Testing)
 
-## React Compiler
+## 🛠️ 技術架構
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 前端
+- **React 19** + **TypeScript** - 現代化的前端框架
+- **Vite** - 快速的開發和建置工具
+- **Tailwind CSS 4** - 實用優先的 CSS 框架
+- **Vitest** + **fast-check** - 單元測試和屬性測試
 
-## Expanding the ESLint configuration
+### 後端
+- **Google Apps Script** - 作為 API 層
+- **Google Sheets** - 作為資料庫
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 📦 安裝與設定
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 1. 克隆專案
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+git clone https://github.com/rickchen1004/ssc-banto.git
+cd ssc-banto
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. 安裝依賴
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+### 3. 設定 Google Sheets
+
+請參考 [Google Sheet 設定指南](./GOOGLE_SHEET_SETUP_GUIDE.md) 完成以下步驟：
+
+1. 建立 Google Sheet 並設定工作表結構
+2. 填入餐廳、餐點、加購項目資料
+3. 部署 Google Apps Script 為 Web App
+4. 取得 Web App URL
+
+詳細的餐廳設定說明請參考 [餐廳設定指南](./RESTAURANT_SETUP_GUIDE.md)
+
+### 4. 設定環境變數
+
+複製 `.env.example` 為 `.env`：
+
+```bash
+cp .env.example .env
+```
+
+編輯 `.env` 檔案，填入你的 Google Apps Script URL：
+
+```env
+VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
+```
+
+### 5. 啟動開發伺服器
+
+```bash
+npm run dev
+```
+
+開啟瀏覽器訪問 `http://localhost:5173`
+
+## 🚀 部署
+
+### 部署到 Vercel（推薦）
+
+1. 前往 [Vercel](https://vercel.com)
+2. 匯入 GitHub repository
+3. 設定環境變數 `VITE_GOOGLE_SCRIPT_URL`
+4. 點擊部署
+
+詳細步驟請參考 [Vercel 部署指南](./DEPLOYMENT_VERCEL.md)
+
+### 建置靜態檔案
+
+```bash
+npm run build
+```
+
+建置完成的檔案會在 `dist/` 資料夾中，可以部署到任何靜態網站託管服務。
+
+## 📖 使用方式
+
+### 學生端操作流程
+
+1. **查看菜單** - 開啟應用程式，查看今日餐廳菜單圖片
+2. **選擇餐點** - 點擊想要的餐點（只能選一個）
+3. **選擇備註** - 選擇餐點的客製化選項（例如：加辣、粗麵）
+4. **選擇加購** - 選擇額外的加購項目（例如：加麵、飲料）
+5. **填寫姓名** - 輸入學生姓名
+6. **確認金額** - 查看自動計算的總金額
+7. **提交訂單** - 點擊提交按鈕，完成訂購
+
+### 老師端管理
+
+老師只需要在 Google Sheets 中管理資料：
+
+1. **切換餐廳** - 在「設定」工作表中，將想要的餐廳「啟用」欄位設為 `TRUE`
+2. **更新菜單** - 更新「菜單圖片網址」欄位
+3. **管理餐點** - 在「餐點」工作表中新增、修改、刪除餐點
+4. **管理加購** - 在「加購」工作表中新增、修改、刪除加購項目
+5. **查看訂單** - 在「訂單」工作表中查看所有學生的訂單記錄
+
+## 🧪 測試
+
+### 執行所有測試
+
+```bash
+npm test
+```
+
+### 執行測試（單次）
+
+```bash
+npm run test -- --run
+```
+
+### 測試涵蓋範圍
+
+- ✅ 單元測試 - 測試個別函數和元件
+- ✅ 屬性測試 - 使用 fast-check 進行屬性基礎測試
+- ✅ 整合測試 - 測試元件間的互動
+
+## 📁 專案結構
+
+```
+ssc-banto/
+├── src/
+│   ├── components/      # React 元件
+│   ├── hooks/          # 自訂 Hooks（狀態管理）
+│   ├── services/       # API 服務層
+│   ├── types/          # TypeScript 型別定義
+│   └── utils/          # 工具函數
+├── google-apps-script/ # Google Apps Script 程式碼
+├── .kiro/specs/        # 需求和設計文件
+└── public/             # 靜態資源
+```
+
+## 📚 相關文件
+
+- [需求文件](./.kiro/specs/student-lunch-order/requirements.md) - 完整的功能需求
+- [設計文件](./.kiro/specs/student-lunch-order/design.md) - 系統架構和設計
+- [Google Sheet 設定指南](./GOOGLE_SHEET_SETUP_GUIDE.md) - 設定 Google Sheets 的詳細步驟
+- [餐廳設定指南](./RESTAURANT_SETUP_GUIDE.md) - 如何管理多家餐廳
+- [Vercel 部署指南](./DEPLOYMENT_VERCEL.md) - 部署到 Vercel 的步驟
+
+## 🔧 開發指令
+
+```bash
+# 安裝依賴
+npm install
+
+# 啟動開發伺服器
+npm run dev
+
+# 建置生產版本
+npm run build
+
+# 預覽生產版本
+npm run preview
+
+# 執行測試
+npm test
+
+# 執行 ESLint
+npm run lint
+```
+
+## 🤝 貢獻
+
+歡迎提交 Issue 或 Pull Request！
+
+## 📄 授權
+
+MIT License
+
+## 👨‍💻 作者
+
+Rick Chen - [GitHub](https://github.com/rickchen1004)
+
+---
+
+如有任何問題，請開啟 [Issue](https://github.com/rickchen1004/ssc-banto/issues) 或聯繫作者。
