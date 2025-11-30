@@ -84,6 +84,7 @@ describe('屬性 9: 表單重置的完整性', () => {
             selectedOptions,
             selectedAddons,
             studentName,
+            mealQuantity: 1,
             isSubmitting: false,
             notification: { type: null, message: '' },
           };
@@ -117,6 +118,7 @@ describe('屬性 9: 表單重置的完整性', () => {
             selectedOptions: ['加辣'],
             selectedAddons: [],
             studentName,
+            mealQuantity: 1,
             isSubmitting: false,
             notification: { type: null, message: '' },
           };
@@ -144,6 +146,7 @@ describe('屬性 9: 表單重置的完整性', () => {
             selectedOptions: [],
             selectedAddons: [],
             studentName: '測試學生',
+            mealQuantity: 1,
             isSubmitting: false,
             notification: { type: null, message: '' },
           };
@@ -170,7 +173,7 @@ describe('屬性 9: 表單重置的完整性', () => {
             selectedOptions: options,
             selectedAddons: [],
             studentName: '測試學生',
-            isSubmitting: false,
+            mealQuantity: 1,            isSubmitting: false,
             notification: { type: null, message: '' },
           };
 
@@ -203,7 +206,7 @@ describe('屬性 9: 表單重置的完整性', () => {
             selectedOptions: [],
             selectedAddons: addons,
             studentName: '測試學生',
-            isSubmitting: false,
+            mealQuantity: 1,            isSubmitting: false,
             notification: { type: null, message: '' },
           };
 
@@ -237,7 +240,7 @@ describe('屬性 9: 表單重置的完整性', () => {
             selectedOptions: ['加辣'],
             selectedAddons: [createTestAddon('addon_001', '加麵', 10)],
             studentName: '測試學生',
-            isSubmitting: false,
+            mealQuantity: 1,            isSubmitting: false,
             notification: { type: null, message: '' },
           };
 
@@ -270,6 +273,7 @@ describe('屬性 9: 表單重置的完整性', () => {
             selectedOptions: [],
             selectedAddons: [],
             studentName: '',
+            mealQuantity: 1,
             isSubmitting: false,
             notification: { type: null, message: '' },
           };

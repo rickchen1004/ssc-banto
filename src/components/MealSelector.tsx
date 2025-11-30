@@ -9,13 +9,19 @@ import MealItem from './MealItem';
 interface MealSelectorProps {
   meals: MealItemType[];
   selectedMeal: MealItemType | null;
+  mealQuantity: number;
   onSelectMeal: (meal: MealItemType) => void;
+  onIncrementQuantity: () => void;
+  onDecrementQuantity: () => void;
 }
 
 export default function MealSelector({
   meals,
   selectedMeal,
+  mealQuantity,
   onSelectMeal,
+  onIncrementQuantity,
+  onDecrementQuantity,
 }: MealSelectorProps) {
   return (
     <div className="w-full">
@@ -44,7 +50,10 @@ export default function MealSelector({
               key={meal.id}
               meal={meal}
               isSelected={selectedMeal?.id === meal.id}
+              quantity={mealQuantity}
               onSelect={onSelectMeal}
+              onIncrementQuantity={onIncrementQuantity}
+              onDecrementQuantity={onDecrementQuantity}
             />
           ))}
         </div>

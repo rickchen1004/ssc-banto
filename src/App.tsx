@@ -1,131 +1,58 @@
 import './App.css';
-import { useOrderState } from './hooks/useOrderState';
-import MenuDisplay from './components/MenuDisplay';
-import MealSelector from './components/MealSelector';
-import OptionGroupSelector from './components/OptionGroupSelector';
-import AddonsSelector from './components/AddonsSelector';
-import StudentNameInput from './components/StudentNameInput';
-import TotalAmount from './components/TotalAmount';
-import SubmitButton from './components/SubmitButton';
-import Notification from './components/Notification';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import OrderPage from './pages/OrderPage';
+import ImporterPage from './pages/ImporterPage';
 
 function App() {
-  const {
-    state,
-    totalAmount,
-    canSubmit,
-    loadConfiguration,
-    selectMeal,
-    toggleOption,
-    toggleAddon,
-    setStudentName,
-    handleSubmitOrder,
-    clearNotification,
-  } = useOrderState();
-
-  // 載入中狀態
-  if (state.isLoadingConfig) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <MenuDisplay
-          menuImageUrl=""
-          restaurantName=""
-          isLoading={true}
-        />
-      </div>
-    );
-  }
-
-  // 錯誤狀態
-  if (state.configError) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="text-red-600">
-              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">載入失敗</h2>
-            <p className="text-gray-600 text-center text-sm">{state.configError}</p>
-            <button
-              onClick={loadConfiguration}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm"
-            >
-              重試
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 正常顯示
-  if (!state.configuration) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-stone-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* 菜單顯示 */}
-        <MenuDisplay
-          menuImageUrl={state.configuration.menuImageUrl}
-          restaurantName={state.configuration.restaurantName}
-          onRetry={loadConfiguration}
-        />
+    <BrowserRouter>
+      <Routes>
+        {/* 主頁面：學生訂餐 */}
+        <Route path="/" element={<OrderPage />} />
 
-        {/* 餐點選擇 */}
-        <MealSelector
-          meals={state.configuration.meals}
-          selectedMeal={state.selectedMeal}
-          onSelectMeal={selectMeal}
-        />
+        {/* 管理員頁面：菜單匯入工具 */}
+        <Route path="/importer" element={<ImporterPage />} />
+      </Routes>
 
-        {/* 客製化選項 */}
-        {state.selectedMeal && (
-          <OptionGroupSelector
-            optionGroups={state.selectedMeal.optionGroups}
-            selectedOptions={state.selectedOptions}
-            isDisabled={!state.selectedMeal}
-            onToggleOption={toggleOption}
+      {/* 管理員連結（隱藏在頁面底部） */}
+      <AdminLink />
+    </BrowserRouter>
+  );
+}
+
+/**
+ * 管理員連結元件
+ * 顯示在頁面底部，僅供管理員使用
+ */
+function AdminLink() {
+  return (
+    <div className="fixed bottom-4 right-4 z-10">
+      <Link
+        to="/importer"
+        className="inline-flex items-center px-3 py-2 text-xs text-gray-500 hover:text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-all"
+        title="管理員專用"
+      >
+        <svg
+          className="w-4 h-4 mr-1"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
           />
-        )}
-
-        {/* 加購項目 */}
-        {state.selectedMeal && (
-          <AddonsSelector
-            addons={state.selectedMeal.addons}
-            selectedAddons={state.selectedAddons}
-            isDisabled={!state.selectedMeal}
-            onToggleAddon={toggleAddon}
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
           />
-        )}
-
-        {/* 學生姓名輸入 */}
-        <StudentNameInput
-          value={state.studentName}
-          onChange={setStudentName}
-        />
-
-        {/* 總金額顯示 */}
-        <TotalAmount amount={totalAmount} />
-
-        {/* 提交按鈕 */}
-        <SubmitButton
-          isDisabled={!canSubmit}
-          isSubmitting={state.isSubmitting}
-          onClick={handleSubmitOrder}
-        />
-
-        {/* 通知訊息 */}
-        <Notification
-          type={state.notification.type}
-          message={state.notification.message}
-          onClose={clearNotification}
-        />
-      </div>
+        </svg>
+        管理
+      </Link>
     </div>
   );
 }

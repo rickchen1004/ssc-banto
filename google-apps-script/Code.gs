@@ -285,8 +285,10 @@ function testDoGetJSON() {
 }
 
 /**
- * 處理 POST 請求 - 寫入訂單資料
- * 當學生提交訂單時會呼叫這個函數
+ * 處理 POST 請求 - 寫入訂單資料或匯入菜單資料
+ * 根據 action 欄位決定執行哪個操作：
+ * - 沒有 action 欄位：處理訂單提交（向後相容）
+ * - action === 'import'：處理菜單匯入
  * 
  * @param {Object} e - 事件參數，包含 POST 的資料
  * @return {TextOutput} JSON 格式的回應
@@ -295,19 +297,54 @@ function doPost(e) {
   try {
     // === 步驟 1: 解析前端傳來的資料 ===
     if (!e || !e.postData || !e.postData.contents) {
-      throw new Error('沒有收到訂單資料');
+      throw new Error('沒有收到資料');
     }
     
     // 解析 JSON 字串
     const requestData = JSON.parse(e.postData.contents);
     
-    if (!requestData.order) {
-      throw new Error('訂單資料格式錯誤');
+    // 記錄請求資料以便調試
+    Logger.log('收到 POST 請求');
+    Logger.log('requestData.action: ' + requestData.action);
+    Logger.log('requestData.order: ' + (requestData.order ? '存在' : '不存在'));
+    Logger.log('requestData.data: ' + (requestData.data ? '存在' : '不存在'));
+    
+    // === 步驟 2: 根據 action 欄位決定操作類型 ===
+    if (requestData.action === 'import') {
+      // 處理菜單匯入
+      Logger.log('執行菜單匯入');
+      return handleImportMenu(requestData.data);
+    } else if (requestData.order) {
+      // 處理訂單提交（向後相容）
+      Logger.log('執行訂單提交');
+      return handleSubmitOrder(requestData.order);
+    } else {
+      throw new Error('未知的操作類型');
     }
     
-    const order = requestData.order;
+  } catch (error) {
+    // 發生錯誤時，記錄並回傳錯誤訊息
+    Logger.log('doPost 錯誤: ' + error.toString());
     
-    // === 步驟 2: 驗證訂單資料 ===
+    return ContentService
+      .createTextOutput(JSON.stringify({ 
+        success: false, 
+        error: error.toString() 
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 處理訂單提交（原有功能）
+ * 
+ * @param {Object} order - 訂單資料
+ * @return {TextOutput} JSON 格式的回應
+ */
+function handleSubmitOrder(order) {
+  try {
+    
+    // 驗證訂單資料
     if (!order.studentName || order.studentName.trim() === '') {
       throw new Error('學生姓名不能為空');
     }
@@ -320,7 +357,7 @@ function doPost(e) {
       throw new Error('餐廳名稱不能為空');
     }
     
-    // === 步驟 3: 取得訂單工作表 ===
+    // 取得訂單工作表
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const ordersSheet = ss.getSheetByName('訂單');
     
@@ -328,43 +365,42 @@ function doPost(e) {
       throw new Error('找不到「訂單」工作表');
     }
     
-    // === 步驟 4: 準備要寫入的資料 ===
-    // 格式化備註選項（陣列轉字串）
+    // 準備要寫入的資料
     const optionsString = order.selectedOptions && order.selectedOptions.length > 0
       ? order.selectedOptions.join(', ')
       : '';
     
-    // 格式化加購項目（陣列轉字串）
     const addonsString = order.selectedAddons && order.selectedAddons.length > 0
       ? order.selectedAddons.map(addon => addon.name).join(', ')
       : '';
     
-    // 計算加購金額總和
-    const addonsTotal = order.selectedAddons && order.selectedAddons.length > 0
+    // 從訂單資料中取得數量和小計（向後相容）
+    const mealQuantity = order.mealQuantity || 1;
+    const mealSubtotal = order.mealSubtotal || order.mealPrice;
+    const addonsTotal = order.addonsTotal || (order.selectedAddons && order.selectedAddons.length > 0
       ? order.selectedAddons.reduce((sum, addon) => sum + addon.price, 0)
-      : 0;
+      : 0);
     
-    // 組合要寫入的資料列
     const rowData = [
-      order.timestamp,           // A欄：時間戳記
-      order.restaurantName,      // B欄：餐廳名稱
-      order.studentName,         // C欄：學生姓名
-      order.mealName,            // D欄：餐點名稱
-      order.mealPrice,           // E欄：餐點價格
-      optionsString,             // F欄：備註選項
-      addonsString,              // G欄：加購項目
-      addonsTotal,               // H欄：加購金額
-      order.totalAmount          // I欄：總金額
+      order.timestamp,           // A: 時間
+      order.restaurantName,      // B: 餐廳名稱
+      order.studentName,         // C: 學生姓名
+      order.mealName,            // D: 餐點名稱
+      order.mealPrice,           // E: 餐點單價
+      mealQuantity,              // F: 餐點數量（新增）
+      mealSubtotal,              // G: 餐點小計（新增）
+      optionsString,             // H: 選項
+      addonsString,              // I: 加購項目
+      addonsTotal,               // J: 加購金額
+      order.totalAmount          // K: 總金額
     ];
     
-    // === 步驟 5: 附加訂單到工作表 ===
-    // 使用 appendRow 將資料附加到最後一行（不會覆蓋既有資料）
+    // 附加訂單到工作表
     ordersSheet.appendRow(rowData);
     
-    // === 步驟 6: 記錄成功訊息 ===
     Logger.log('訂單已成功寫入：' + order.studentName + ' - ' + order.mealName);
     
-    // === 步驟 7: 回傳成功回應 ===
+    // 回傳成功回應
     return ContentService
       .createTextOutput(JSON.stringify({ 
         success: true, 
@@ -373,15 +409,80 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
-    // 發生錯誤時，記錄並回傳錯誤訊息
-    Logger.log('doPost 錯誤: ' + error.toString());
+    Logger.log('handleSubmitOrder 錯誤: ' + error.toString());
+    throw error;
+  }
+}
+
+/**
+ * 處理菜單匯入（新功能）
+ * 
+ * @param {Object} data - 匯入資料，包含餐廳資訊和餐點列表
+ * @return {TextOutput} JSON 格式的回應
+ */
+function handleImportMenu(data) {
+  try {
+    // 驗證資料
+    if (!data || !data.restaurantName || !data.meals || !Array.isArray(data.meals)) {
+      throw new Error('資料格式錯誤');
+    }
     
-    return ContentService
-      .createTextOutput(JSON.stringify({ 
-        success: false, 
-        error: error.toString() 
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const restaurantName = data.restaurantName;
+    
+    // 檢查餐廳是否已存在
+    const configSheet = ss.getSheetByName('設定');
+    if (!configSheet) {
+      throw new Error('找不到「設定」工作表');
+    }
+    
+    const existingRestaurant = findRestaurant(configSheet, restaurantName);
+    
+    // 備份現有資料（如果存在）
+    let backup = null;
+    if (existingRestaurant) {
+      backup = backupRestaurantData(ss, restaurantName);
+    }
+    
+    try {
+      // 如果餐廳已存在，先刪除舊資料
+      if (existingRestaurant) {
+        deleteRestaurantData(ss, restaurantName);
+      }
+      
+      // 寫入新資料
+      writeRestaurantConfig(configSheet, restaurantName, data.menuImageUrl || '');
+      const mealIds = writeMealsData(ss, restaurantName, data.meals);
+      const addonIds = writeAddonsData(ss, restaurantName, data.meals);
+      
+      // 更新餐點的加購 ID 列表
+      updateMealAddonIds(ss, restaurantName, data.meals, addonIds);
+      
+      Logger.log('菜單匯入成功：' + restaurantName);
+      
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          message: '匯入成功',
+          data: {
+            restaurantName: restaurantName,
+            mealsImported: mealIds.length,
+            addonsImported: addonIds.length
+          }
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+        
+    } catch (error) {
+      // 回復資料
+      if (backup) {
+        restoreFromBackup(ss, backup);
+      }
+      throw error;
+    }
+    
+  } catch (error) {
+    Logger.log('handleImportMenu 錯誤: ' + error.toString());
+    throw error;
   }
 }
 

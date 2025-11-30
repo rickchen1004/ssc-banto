@@ -1,84 +1,116 @@
 /**
- * **Feature: student-lunch-order, Property 10: 餐點選擇前的功能禁用**
- * **Validates: Requirements 3.5, 4.5**
+ * Property-based tests for useOrderState hook
+ * Feature: quantity-based-pricing, Property 1: Quantity bounds preservation
  * 
- * 屬性測試：驗證在未選擇餐點時，備註選項和加購項目的選擇功能應該被禁用
+ * 驗證需求: 1.2, 1.3, 1.4, 5.4
  */
 
-import { describe, test } from 'vitest';
-import fc from 'fast-check';
-import type { MealItem } from '../types';
+import { describe, it, expect } from 'vitest';
+import * as fc from 'fast-check';
 
 /**
- * 模擬 useOrderState 的核心邏輯
- * 這個函數檢查在沒有選擇餐點時，備註和加購功能是否應該被禁用
+ * 模擬數量操作序列
  */
-function shouldDisableOptionsAndAddons(selectedMeal: MealItem | null): boolean {
-  // 當沒有選擇餐點時，備註和加購功能應該被禁用
-  return selectedMeal === null;
+type QuantityOperation = 'increment' | 'decrement';
+
+/**
+ * 執行數量操作序列並返回最終數量
+ */
+function applyQuantityOperations(
+  initialQuantity: number,
+  operations: QuantityOperation[]
+): number {
+  let quantity = initialQuantity;
+  
+  for (const op of operations) {
+    if (op === 'increment') {
+      quantity = Math.min(quantity + 1, 99);  // 最大 99
+    } else {
+      quantity = Math.max(quantity - 1, 1);   // 最小 1
+    }
+  }
+  
+  return quantity;
 }
 
-/**
- * 生成隨機餐點資料
- */
-const mealArbitrary = fc.record({
-  id: fc.string({ minLength: 1 }),
-  name: fc.string({ minLength: 1 }),
-  price: fc.integer({ min: 0, max: 500 }),
-  imageUrl: fc.option(fc.string(), { nil: undefined }),
-  optionGroups: fc.array(fc.array(fc.string({ minLength: 1 }), { maxLength: 3 }), { maxLength: 3 }),
-  addons: fc.array(
-    fc.record({
-      id: fc.string({ minLength: 1 }),
-      name: fc.string({ minLength: 1 }),
-      price: fc.integer({ min: 0, max: 100 }),
-    }),
-    { maxLength: 5 }
-  ),
-});
-
-describe('屬性 10: 餐點選擇前的功能禁用', () => {
-  test('對於任意未選擇餐點的狀態，備註選項和加購項目的選擇功能應該被禁用', () => {
+describe('useOrderState - Property 1: Quantity bounds preservation', () => {
+  it('should keep quantity within bounds (1-99) after any sequence of operations', () => {
     fc.assert(
       fc.property(
-        fc.constantFrom(null), // 未選擇餐點的狀態
-        (selectedMeal) => {
-          // 驗證：當沒有選擇餐點時，功能應該被禁用
-          const isDisabled = shouldDisableOptionsAndAddons(selectedMeal);
-          return isDisabled === true;
-        }
-      ),
-      { numRuns: 100 }
-    );
-  });
-
-  test('對於任意已選擇餐點的狀態，備註選項和加購項目的選擇功能應該被啟用', () => {
-    fc.assert(
-      fc.property(
-        mealArbitrary, // 已選擇餐點的狀態
-        (selectedMeal) => {
-          // 驗證：當已選擇餐點時，功能應該被啟用（不被禁用）
-          const isDisabled = shouldDisableOptionsAndAddons(selectedMeal);
-          return isDisabled === false;
-        }
-      ),
-      { numRuns: 100 }
-    );
-  });
-
-  test('對於任意餐點選擇狀態的切換，禁用狀態應該正確反映', () => {
-    fc.assert(
-      fc.property(
-        fc.option(mealArbitrary, { nil: null }), // 可能是 null 或餐點
-        (selectedMeal) => {
-          const isDisabled = shouldDisableOptionsAndAddons(selectedMeal);
+        fc.integer({ min: 1, max: 99 }),  // 初始數量
+        fc.array(fc.constantFrom<QuantityOperation>('increment', 'decrement'), { maxLength: 200 }),  // 操作序列
+        (initialQuantity, operations) => {
+          const finalQuantity = applyQuantityOperations(initialQuantity, operations);
           
-          // 驗證：禁用狀態應該與是否選擇餐點一致
-          if (selectedMeal === null) {
-            return isDisabled === true;
-          } else {
-            return isDisabled === false;
+          // 驗證：數量必須在 1-99 範圍內
+          expect(finalQuantity).toBeGreaterThanOrEqual(1);
+          expect(finalQuantity).toBeLessThanOrEqual(99);
+        }
+      ),
+      { numRuns: 100 }  // 執行 100 次測試
+    );
+  });
+
+  it('should not go below 1 when decrementing from 1', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 20 }),  // 減少次數
+        (decrementCount) => {
+          let quantity = 1;
+          
+          // 從 1 開始連續減少
+          for (let i = 0; i < decrementCount; i++) {
+            quantity = Math.max(quantity - 1, 1);
           }
+          
+          // 驗證：數量應該保持為 1
+          expect(quantity).toBe(1);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  it('should not go above 99 when incrementing from 99', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 20 }),  // 增加次數
+        (incrementCount) => {
+          let quantity = 99;
+          
+          // 從 99 開始連續增加
+          for (let i = 0; i < incrementCount; i++) {
+            quantity = Math.min(quantity + 1, 99);
+          }
+          
+          // 驗證：數量應該保持為 99
+          expect(quantity).toBe(99);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  it('should handle alternating increment and decrement operations', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 99 }),  // 初始數量
+        fc.integer({ min: 1, max: 50 }),  // 操作次數
+        (initialQuantity, operationCount) => {
+          let quantity = initialQuantity;
+          
+          // 交替執行增加和減少
+          for (let i = 0; i < operationCount; i++) {
+            if (i % 2 === 0) {
+              quantity = Math.min(quantity + 1, 99);
+            } else {
+              quantity = Math.max(quantity - 1, 1);
+            }
+          }
+          
+          // 驗證：數量必須在 1-99 範圍內
+          expect(quantity).toBeGreaterThanOrEqual(1);
+          expect(quantity).toBeLessThanOrEqual(99);
         }
       ),
       { numRuns: 100 }

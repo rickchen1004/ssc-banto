@@ -13,6 +13,37 @@ export interface SubmitOrderResponse {
   error?: string;
 }
 
+// 匯入菜單相關介面
+export interface MealData {
+  name: string;
+  price: number;
+  imageUrl?: string;
+  optionGroups: string[][];
+  addons: AddonData[];
+}
+
+export interface AddonData {
+  name: string;
+  price: number;
+}
+
+export interface ImportMenuData {
+  restaurantName: string;
+  menuImageUrl: string;
+  meals: MealData[];
+}
+
+export interface ImportMenuResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    restaurantName: string;
+    mealsImported: number;
+    addonsImported: number;
+  };
+}
+
 /**
  * 從 Google Apps Script 讀取設定資料
  * 包含菜單圖片、餐點列表、加購項目等
@@ -102,5 +133,60 @@ export async function submitOrder(order: Order): Promise<SubmitOrderResponse> {
       throw new Error(`提交訂單失敗: ${error.message}`);
     }
     throw new Error('提交訂單時發生未知錯誤');
+  }
+}
+
+/**
+ * 匯入菜單資料到 Google Sheets
+ * 
+ * @param {ImportMenuData} menuData - 菜單資料（包含餐廳資訊和餐點列表）
+ * @returns {Promise<ImportMenuResponse>} 匯入結果
+ * @throws {Error} 當 API 呼叫失敗時拋出錯誤
+ */
+export async function importMenuData(menuData: ImportMenuData): Promise<ImportMenuResponse> {
+  const apiUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+  
+  if (!apiUrl) {
+    throw new Error('未設定 VITE_GOOGLE_SCRIPT_URL 環境變數');
+  }
+
+  try {
+    // 發送 POST 請求到 Google Apps Script
+    // 使用 action: 'import' 來區分匯入操作
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: JSON.stringify({
+        action: 'import',
+        data: menuData
+      }),
+    });
+
+    // 檢查 HTTP 狀態碼
+    if (!response.ok) {
+      throw new Error(`HTTP 錯誤！狀態碼: ${response.status}`);
+    }
+
+    // 解析 JSON 回應
+    const result: ImportMenuResponse = await response.json();
+
+    // 檢查 API 回應是否成功
+    if (!result.success) {
+      throw new Error(result.error || '匯入菜單失敗');
+    }
+
+    return result;
+  } catch (error) {
+    // 處理網路錯誤或其他錯誤
+    if (error instanceof Error) {
+      // 檢查是否為網路連線錯誤
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error('網路連線失敗，請檢查網路連線後重試');
+      }
+      throw new Error(`匯入菜單失敗: ${error.message}`);
+    }
+    throw new Error('匯入菜單時發生未知錯誤');
   }
 }

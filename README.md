@@ -5,10 +5,12 @@
 ## 📋 專案特色
 
 - 🍱 **多餐廳支援** - 在 Google Sheets 中管理多家餐廳，輕鬆切換每日供應商
+- 🔢 **數量選擇** - 學生可以選擇每個餐點的數量（1-99 份），系統自動計算小計
 - 📱 **響應式設計** - 支援手機、平板、桌面等各種裝置
 - 🎨 **友善介面** - 清晰易懂的操作流程，適合小學生使用
 - 📊 **Google Sheets 整合** - 無需資料庫，直接使用 Google Sheets 管理資料
 - ✅ **即時驗證** - 自動計算金額，防止錯誤提交
+- 🔐 **菜單匯入工具** - 管理員可透過密碼保護的介面快速匯入 JSON 格式菜單
 - 🧪 **完整測試** - 包含單元測試和屬性基礎測試 (Property-Based Testing)
 
 ## 🛠️ 技術架構
@@ -57,11 +59,20 @@ npm install
 cp .env.example .env
 ```
 
-編輯 `.env` 檔案，填入你的 Google Apps Script URL：
+編輯 `.env` 檔案，填入你的 Google Apps Script URL 和管理員密碼：
 
 ```env
+# Google Apps Script Web App URL
 VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
+
+# 管理員密碼（用於訪問菜單匯入工具）
+VITE_ADMIN_PASSWORD=your_secure_password_here
 ```
+
+**重要提示：**
+- `VITE_ADMIN_PASSWORD` 用於保護菜單匯入工具，防止學生誤入
+- 請設置一個強密碼（建議至少 12 個字元）
+- 不要將 `.env` 檔案提交到版本控制系統
 
 ### 5. 啟動開發伺服器
 
@@ -102,9 +113,18 @@ npm run build
 6. **確認金額** - 查看自動計算的總金額
 7. **提交訂單** - 點擊提交按鈕，完成訂購
 
-### 老師端管理
+### 管理員端管理
 
-老師只需要在 Google Sheets 中管理資料：
+#### 方式一：使用菜單匯入工具（推薦）
+
+1. **訪問匯入頁面** - 開啟 `/importer` 路徑（例如：`https://your-app.vercel.app/importer`）
+2. **輸入管理員密碼** - 使用設定的 `VITE_ADMIN_PASSWORD` 進行驗證
+3. **填寫餐廳資訊** - 輸入餐廳名稱和菜單圖片網址
+4. **貼上 JSON 資料** - 將 Gemini AI 產生的 JSON 格式菜單資料貼入
+5. **預覽資料** - 系統會即時驗證並顯示預覽
+6. **匯入** - 點擊匯入按鈕，資料會自動寫入 Google Sheets
+
+#### 方式二：直接編輯 Google Sheets
 
 1. **切換餐廳** - 在「設定」工作表中，將想要的餐廳「啟用」欄位設為 `TRUE`
 2. **更新菜單** - 更新「菜單圖片網址」欄位

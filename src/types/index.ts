@@ -20,9 +20,12 @@ export interface Order {
   mealId: string;
   mealName: string;
   mealPrice: number;
+  mealQuantity: number;      // 餐點數量
+  mealSubtotal: number;      // 餐點小計 = mealPrice × mealQuantity
   selectedOptions: string[];
   selectedAddons: AddonItem[];
-  totalAmount: number;
+  addonsTotal: number;       // 加購總價（不受數量影響）
+  totalAmount: number;       // 總計 = mealSubtotal + addonsTotal
   timestamp: string;
 }
 
@@ -43,6 +46,7 @@ export interface AppState {
   selectedOptions: string[];
   selectedAddons: AddonItem[];
   studentName: string;
+  mealQuantity: number;  // 餐點數量，預設為 1
   
   // UI 狀態
   isSubmitting: boolean;

@@ -1,21 +1,33 @@
 /**
  * 餐點項目元件
- * 顯示單個餐點的資訊，包含名稱、價格和選擇狀態
+ * 顯示單個餐點的資訊，包含名稱、價格、數量選擇器和選擇狀態
  */
 
 import type { MealItem as MealItemType } from '../types';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, calculateMealSubtotal } from '../utils/calculations';
+import QuantitySelector from './QuantitySelector';
 
 interface MealItemProps {
   meal: MealItemType;
   isSelected: boolean;
+  quantity: number;
   onSelect: (meal: MealItemType) => void;
+  onIncrementQuantity: () => void;
+  onDecrementQuantity: () => void;
 }
 
-export default function MealItem({ meal, isSelected, onSelect }: MealItemProps) {
+export default function MealItem({ 
+  meal, 
+  isSelected, 
+  quantity,
+  onSelect, 
+  onIncrementQuantity,
+  onDecrementQuantity 
+}: MealItemProps) {
+  const subtotal = calculateMealSubtotal(meal, quantity);
+
   return (
-    <button
-      onClick={() => onSelect(meal)}
+    <div
       className={`
         group relative w-full p-6 rounded-2xl transition-all duration-300 border-2
         ${
@@ -25,8 +37,15 @@ export default function MealItem({ meal, isSelected, onSelect }: MealItemProps) 
         }
       `}
     >
+      {/* 選擇按鈕區域 */}
+      <button
+        onClick={() => onSelect(meal)}
+        className="absolute inset-0 w-full h-full rounded-2xl"
+        aria-label={`選擇 ${meal.name}`}
+      />
+
       {/* 選擇指示器 - 右上角 */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 right-4 z-10 pointer-events-none">
         {isSelected ? (
           <div className="w-9 h-9 rounded-full bg-[#E8DCC4] flex items-center justify-center shadow-lg ring-2 ring-[#E8DCC4]/50">
             <svg
@@ -47,7 +66,7 @@ export default function MealItem({ meal, isSelected, onSelect }: MealItemProps) 
       </div>
 
       {/* 餐點資訊 */}
-      <div className="relative text-left pr-12">
+      <div className="relative text-left pr-12 pointer-events-none">
         <h3
          className={`
             text-lg sm:text-xl font-bold mb-3 leading-tight
@@ -60,9 +79,35 @@ export default function MealItem({ meal, isSelected, onSelect }: MealItemProps) 
           inline-flex items-center px-4 py-2.5 rounded-full font-bold text-base shadow-sm
           ${isSelected ? 'bg-[#E8DCC4]/30 backdrop-blur-sm text-[#E8DCC4] ring-1 ring-[#E8DCC4]/30' : 'bg-[#E8DCC4]/30 text-[#6B7C6E]'}
         `}>
-          {formatCurrency(meal.price)}
+          單價：{formatCurrency(meal.price)}
         </div>
       </div>
-    </button>
+
+      {/* 數量選擇器 - 只在選中時顯示 */}
+      {isSelected && (
+        <div className="relative mt-6 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-col items-center space-y-4">
+            <QuantitySelector
+              quantity={quantity}
+              onIncrement={onIncrementQuantity}
+              onDecrement={onDecrementQuantity}
+              isDisabled={false}
+            />
+            
+            {/* 小計顯示 */}
+            <div className="w-full p-4 rounded-xl bg-[#E8DCC4]/30 backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-[#E8DCC4]">
+                  {formatCurrency(meal.price)} × {quantity}
+                </span>
+                <span className="text-lg font-bold text-[#E8DCC4]">
+                  = {formatCurrency(subtotal)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

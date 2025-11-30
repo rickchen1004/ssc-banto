@@ -53,12 +53,15 @@ export async function testSubmitOrder() {
     mealId: 'meal_001',
     mealName: '紅燒牛肉麵',
     mealPrice: 80,
+    mealQuantity: 2,
+    mealSubtotal: 160,
     selectedOptions: ['加辣', '粗麵'],
     selectedAddons: [
       { id: 'addon_001', name: '加麵', price: 10 },
       { id: 'addon_002', name: '焗烤', price: 20 }
     ],
-    totalAmount: 110,
+    addonsTotal: 30,
+    totalAmount: 190,
     timestamp: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
   };
   

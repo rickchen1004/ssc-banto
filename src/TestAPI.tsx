@@ -37,8 +37,11 @@ export default function TestAPI() {
         mealId: 'test_001',
         mealName: '測試餐點',
         mealPrice: 100,
+        mealQuantity: 1,
+        mealSubtotal: 100,
         selectedOptions: ['測試選項'],
         selectedAddons: [{ id: 'addon_001', name: '測試加購', price: 20 }],
+        addonsTotal: 20,
         totalAmount: 120,
         timestamp: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
       };

@@ -5,32 +5,63 @@
 import type { MealItem, AddonItem } from '../types';
 
 /**
+ * 計算餐點小計
+ * 餐點小計 = 餐點單價 × 數量
+ * 
+ * @param meal - 選擇的餐點（可能為 null）
+ * @param quantity - 餐點數量
+ * @returns 餐點小計
+ */
+export function calculateMealSubtotal(
+  meal: MealItem | null,
+  quantity: number
+): number {
+  if (!meal) {
+    return 0;
+  }
+  return meal.price * quantity;
+}
+
+/**
+ * 計算加購總價
+ * 加購總價 = 所有已選擇加購項目的價格總和（不受餐點數量影響）
+ * 
+ * @param selectedAddons - 已選擇的加購項目陣列
+ * @returns 加購總價
+ */
+export function calculateAddonsTotal(selectedAddons: AddonItem[]): number {
+  return selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+}
+
+/**
  * 計算總金額
- * 總金額 = 餐點價格 + 所有已選擇加購項目的價格總和
+ * 總金額 = 餐點小計 + 加購總價
+ * 餐點小計 = 餐點單價 × 數量
+ * 加購總價 = 所有已選擇加購項目的價格總和
  * 
  * @param meal - 選擇的餐點（可能為 null）
  * @param selectedAddons - 已選擇的加購項目陣列
+ * @param quantity - 餐點數量（預設為 1）
  * @returns 總金額
  */
 export function calculateTotal(
   meal: MealItem | null,
-  selectedAddons: AddonItem[]
+  selectedAddons: AddonItem[],
+  quantity: number = 1
 ): number {
   // 如果沒有選擇餐點，總金額為 0
   if (!meal) {
     return 0;
   }
 
-  // 餐點基本價格
-  const mealPrice = meal.price;
+  // 計算餐點小計
+  const mealSubtotal = calculateMealSubtotal(meal, quantity);
 
-  // 計算所有加購項目的價格總和
-  const addonsTotal = selectedAddons.reduce((sum, addon) => {
-    return sum + addon.price;
-  }, 0);
+  // 計算加購總價
+  const addonsTotal = calculateAddonsTotal(selectedAddons);
 
   // 回傳總金額
-  return mealPrice + addonsTotal;
+  return mealSubtotal + addonsTotal;
 }
 
 /**

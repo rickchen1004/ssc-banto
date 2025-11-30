@@ -24,6 +24,7 @@ const initialState: AppState = {
   selectedOptions: [],
   selectedAddons: [],
   studentName: '',
+  mealQuantity: 1,  // 預設數量為 1
 
   // UI 狀態
   isSubmitting: false,
@@ -74,7 +75,7 @@ export function useOrderState() {
 
   /**
    * 選擇餐點
-   * 選擇新餐點時會清空備註選項和加購項目
+   * 選擇新餐點時會清空備註選項和加購項目，並重置數量為 1
    */
   const selectMeal = (meal: MealItem) => {
     setState(prev => ({
@@ -82,6 +83,7 @@ export function useOrderState() {
       selectedMeal: meal,
       selectedOptions: [],
       selectedAddons: [],
+      mealQuantity: 1,  // 重置數量為 1
     }));
   };
 
@@ -141,6 +143,26 @@ export function useOrderState() {
   };
 
   /**
+   * 增加餐點數量
+   */
+  const incrementQuantity = () => {
+    setState(prev => ({
+      ...prev,
+      mealQuantity: Math.min(prev.mealQuantity + 1, 99),  // 最大 99
+    }));
+  };
+
+  /**
+   * 減少餐點數量
+   */
+  const decrementQuantity = () => {
+    setState(prev => ({
+      ...prev,
+      mealQuantity: Math.max(prev.mealQuantity - 1, 1),  // 最小 1
+    }));
+  };
+
+  /**
    * 更新學生姓名
    */
   const setStudentName = (name: string) => {
@@ -190,13 +212,14 @@ export function useOrderState() {
       selectedOptions: [],
       selectedAddons: [],
       studentName: '',
+      mealQuantity: 1,  // 重置數量為 1
     }));
   };
 
   /**
    * 計算當前總金額
    */
-  const totalAmount = calculateTotal(state.selectedMeal, state.selectedAddons);
+  const totalAmount = calculateTotal(state.selectedMeal, state.selectedAddons, state.mealQuantity);
 
   /**
    * 檢查是否可以提交訂單
@@ -237,6 +260,7 @@ export function useOrderState() {
         state.selectedMeal,
         state.selectedOptions,
         state.selectedAddons,
+        state.mealQuantity,
         totalAmount
       );
 
@@ -271,6 +295,8 @@ export function useOrderState() {
     selectMeal,
     toggleOption,
     toggleAddon,
+    incrementQuantity,
+    decrementQuantity,
     setStudentName,
     setSubmitting,
     showNotification,
