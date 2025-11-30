@@ -28,7 +28,7 @@ describe('屬性 2: 總金額計算的正確性', () => {
             id: 'test_meal',
             name: '測試餐點',
             price: mealPrice,
-            options: [],
+            optionGroups: [],
             addons: [],
           };
 
@@ -88,7 +88,7 @@ describe('屬性 2: 總金額計算的正確性', () => {
             id: 'test_meal',
             name: '測試餐點',
             price: mealPrice,
-            options: [],
+            optionGroups: [],
             addons: [],
           };
 

@@ -12,7 +12,7 @@ describe('validateOrder', () => {
     id: 'meal_001',
     name: '紅燒牛肉麵',
     price: 80,
-    options: ['加辣', '粗麵'],
+    optionGroups: [['加辣', '不辣'], ['粗麵', '細麵']],
     addons: [],
   };
 

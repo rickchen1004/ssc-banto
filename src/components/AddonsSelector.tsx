@@ -1,6 +1,6 @@
 /**
  * 加購項目選擇器元件
- * 顯示餐點的加購項目列表（多選）
+ * 顯示餐點的加購項目列表（單選）
  */
 
 import type { AddonItem } from '../types';
@@ -43,7 +43,7 @@ export default function AddonsSelector({
         <p className="text-gray-600">
           {isDisabled
             ? '請先選擇餐點'
-            : '可選擇多個加購項目（選填）'}
+            : '選擇一個加購項目（選填）'}
         </p>
       </div>
 
@@ -71,7 +71,7 @@ export default function AddonsSelector({
                 </svg>
               </div>
               <p className="text-sm text-[#6B7C6E] font-semibold">
-                已選 {selectedAddons.length} 項加購
+                已選加購：{selectedAddons[0].name}
               </p>
             </div>
             <p className="text-xl font-bold text-[#6B7C6E]">

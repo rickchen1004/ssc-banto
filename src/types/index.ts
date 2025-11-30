@@ -4,8 +4,8 @@ export interface MealItem {
   id: string;
   name: string;
   price: number;
-  options: string[];      // 可用的備註選項
-  addons: AddonItem[];    // 可用的加購項目
+  optionGroups: string[][];  // 選項組（二維陣列）
+  addons: AddonItem[];       // 可用的加購項目
 }
 
 export interface AddonItem {

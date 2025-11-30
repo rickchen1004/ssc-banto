@@ -2,7 +2,7 @@ import './App.css';
 import { useOrderState } from './hooks/useOrderState';
 import MenuDisplay from './components/MenuDisplay';
 import MealSelector from './components/MealSelector';
-import OptionsSelector from './components/OptionsSelector';
+import OptionGroupSelector from './components/OptionGroupSelector';
 import AddonsSelector from './components/AddonsSelector';
 import StudentNameInput from './components/StudentNameInput';
 import TotalAmount from './components/TotalAmount';
@@ -83,10 +83,10 @@ function App() {
           onSelectMeal={selectMeal}
         />
 
-        {/* 備註選項 */}
+        {/* 客製化選項 */}
         {state.selectedMeal && (
-          <OptionsSelector
-            options={state.selectedMeal.options}
+          <OptionGroupSelector
+            optionGroups={state.selectedMeal.optionGroups}
             selectedOptions={state.selectedOptions}
             isDisabled={!state.selectedMeal}
             onToggleOption={toggleOption}

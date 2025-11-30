@@ -16,7 +16,7 @@ function createTestMeal(id: string, name: string, price: number): MealItem {
     id,
     name,
     price,
-    options: [],
+    optionGroups: [],
     addons: [],
   };
 }
@@ -138,7 +138,7 @@ describe('屬性 7: 訂單資料的完整性', () => {
             id: mealId,
             name: mealName,
             price: mealPrice,
-            options: [],
+            optionGroups: [],
             addons: [],
           };
           

@@ -15,7 +15,7 @@ function createTestMeal(id: string, name: string, price: number): MealItem {
     id,
     name,
     price,
-    options: ['加辣', '粗麵', '細麵'],
+    optionGroups: [['加辣', '不辣'], ['粗麵', '細麵']],
     addons: [],
   };
 }

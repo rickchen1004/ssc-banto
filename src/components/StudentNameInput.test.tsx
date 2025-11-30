@@ -106,13 +106,16 @@ describe('屬性 12: 姓名輸入的即時反映', () => {
             <StudentNameInput value={inputText} onChange={handleChange} />
           );
 
-          // 驗證確認訊息存在（使用更靈活的查詢方式）
-          const confirmationText = container.querySelector('p.text-sm.text-purple-700');
-          expect(confirmationText).toBeDefined();
-          expect(confirmationText?.textContent).toContain('姓名：');
-          expect(confirmationText?.textContent).toContain(inputText);
-
-          return true;
+          // 驗證確認訊息存在（查找包含 "姓名：" 的段落）
+          const confirmationText = container.querySelector('p.text-sm');
+          
+          // 返回 boolean 而不是使用 expect
+          return (
+            confirmationText !== null &&
+            confirmationText.textContent !== null &&
+            confirmationText.textContent.includes('姓名：') &&
+            confirmationText.textContent.includes(inputText)
+          );
         }
       ),
       { numRuns: 100 }

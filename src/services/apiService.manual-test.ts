@@ -26,7 +26,7 @@ export async function testFetchConfiguration() {
     
     config.meals.forEach((meal, index) => {
       console.log(`餐點 ${index + 1}: ${meal.name} (NT$ ${meal.price})`);
-      console.log(`  備註選項: ${meal.options.join(', ')}`);
+      console.log(`  選項組: ${meal.optionGroups.map(group => group.join('/')).join(', ')}`);
       console.log(`  加購項目: ${meal.addons.map(a => `${a.name} (NT$ ${a.price})`).join(', ')}`);
       console.log('');
     });

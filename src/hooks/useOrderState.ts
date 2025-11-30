@@ -86,14 +86,29 @@ export function useOrderState() {
   };
 
   /**
-   * 切換備註選項
+   * 切換備註選項（每組單選）
+   * @param option 選項名稱
+   * @param groupIndex 選項組索引
    */
-  const toggleOption = (option: string) => {
+  const toggleOption = (option: string, groupIndex: number) => {
     setState(prev => {
-      const isSelected = prev.selectedOptions.includes(option);
-      const newOptions = isSelected
-        ? prev.selectedOptions.filter(o => o !== option)
-        : [...prev.selectedOptions, option];
+      if (!prev.selectedMeal) return prev;
+
+      // 取得當前選項組的所有選項
+      const currentGroup = prev.selectedMeal.optionGroups[groupIndex];
+      if (!currentGroup) return prev;
+
+      // 移除同組中的其他選項
+      const newOptions = prev.selectedOptions.filter(
+        opt => !currentGroup.includes(opt)
+      );
+
+      // 如果點擊的選項已經被選中，則取消選擇（允許不選）
+      // 否則，加入新選項
+      const isAlreadySelected = prev.selectedOptions.includes(option);
+      if (!isAlreadySelected) {
+        newOptions.push(option);
+      }
 
       return {
         ...prev,
@@ -103,18 +118,24 @@ export function useOrderState() {
   };
 
   /**
-   * 切換加購項目
+   * 切換加購項目（單選）
    */
   const toggleAddon = (addon: AddonItem) => {
     setState(prev => {
       const isSelected = prev.selectedAddons.some(a => a.id === addon.id);
-      const newAddons = isSelected
-        ? prev.selectedAddons.filter(a => a.id !== addon.id)
-        : [...prev.selectedAddons, addon];
-
+      
+      // 如果點擊的是已選中的加購，則取消選擇
+      if (isSelected) {
+        return {
+          ...prev,
+          selectedAddons: [],
+        };
+      }
+      
+      // 否則，替換為新的加購（單選）
       return {
         ...prev,
-        selectedAddons: newAddons,
+        selectedAddons: [addon],
       };
     });
   };

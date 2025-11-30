@@ -90,7 +90,7 @@ function doGet(e) {
         id: meal.id,
         name: meal.name,
         price: meal.price,
-        options: meal.options,
+        optionGroups: meal.optionGroups,
         addons: mealAddons
       };
     });
@@ -141,22 +141,35 @@ function parseMealsData(data, restaurantName) {
     // 檢查是否為今日餐廳的餐點
     // row[0] = 餐廳名稱, row[1] = 餐點ID
     if (row[0] === restaurantName && row[1]) {
-      // 解析備註選項（用逗號分隔的字串）
-      const options = row[4] ? 
-        row[4].toString().split(',').map(s => s.trim()) : 
-        [];
+      // 解析選項組（JSON 字串）
+      let optionGroups = [];
+      if (row[4]) {
+        try {
+          // 嘗試解析 JSON 字串
+          optionGroups = JSON.parse(row[4]);
+          
+          // 確保是陣列格式
+          if (!Array.isArray(optionGroups)) {
+            optionGroups = [];
+          }
+        } catch (e) {
+          // 如果解析失敗，記錄錯誤並使用空陣列
+          Logger.log('解析選項組 JSON 失敗: ' + row[2] + ' - ' + e.toString());
+          optionGroups = [];
+        }
+      }
       
       // 解析加購項目ID（用逗號分隔的字串）
       const addonIds = row[5] ? 
-        row[5].toString().split(',').map(s => s.trim()) : 
+        row[5].toString().split(',').map(s => s.trim()).filter(s => s) : 
         [];
       
       meals.push({
-        id: row[1],           // B欄：餐點ID
-        name: row[2],         // C欄：餐點名稱
-        price: row[3],        // D欄：餐點價格
-        options: options,     // E欄：備註選項（陣列）
-        addonIds: addonIds    // F欄：加購項目ID（陣列）
+        id: row[1],              // B欄：餐點ID
+        name: row[2],            // C欄：餐點名稱
+        price: row[3],           // D欄：餐點價格
+        optionGroups: optionGroups,  // E欄：選項組（JSON 陣列）
+        addonIds: addonIds       // F欄：加購項目ID（陣列）
       });
     }
   }
@@ -239,8 +252,24 @@ function testDoGetJSON() {
       jsonObject.data.meals.forEach((meal, index) => {
         Logger.log('  餐點 ' + (index + 1) + ': ' + meal.name);
         Logger.log('    價格: NT$ ' + meal.price);
-        Logger.log('    備註選項: ' + meal.options.join(', '));
-        Logger.log('    加購項目: ' + meal.addons.map(a => a.name + ' (NT$ ' + a.price + ')').join(', '));
+        
+        // 顯示選項組
+        if (meal.optionGroups && meal.optionGroups.length > 0) {
+          Logger.log('    選項組:');
+          meal.optionGroups.forEach((group, groupIndex) => {
+            Logger.log('      組 ' + (groupIndex + 1) + ': ' + group.join(', '));
+          });
+        } else {
+          Logger.log('    選項組: 無');
+        }
+        
+        // 顯示加購項目
+        if (meal.addons && meal.addons.length > 0) {
+          Logger.log('    加購項目: ' + meal.addons.map(a => a.name + ' (NT$ ' + a.price + ')').join(', '));
+        } else {
+          Logger.log('    加購項目: 無');
+        }
+        
         Logger.log('');
       });
     } else {

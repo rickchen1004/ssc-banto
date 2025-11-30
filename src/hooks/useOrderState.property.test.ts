@@ -25,7 +25,8 @@ const mealArbitrary = fc.record({
   id: fc.string({ minLength: 1 }),
   name: fc.string({ minLength: 1 }),
   price: fc.integer({ min: 0, max: 500 }),
-  options: fc.array(fc.string({ minLength: 1 }), { maxLength: 5 }),
+  imageUrl: fc.option(fc.string(), { nil: undefined }),
+  optionGroups: fc.array(fc.array(fc.string({ minLength: 1 }), { maxLength: 3 }), { maxLength: 3 }),
   addons: fc.array(
     fc.record({
       id: fc.string({ minLength: 1 }),
