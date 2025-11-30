@@ -2,6 +2,8 @@ import './App.css';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import OrderPage from './pages/OrderPage';
 import ImporterPage from './pages/ImporterPage';
+import AdminPage from './pages/AdminPage';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -10,8 +12,14 @@ function App() {
         {/* 主頁面：學生訂餐 */}
         <Route path="/" element={<OrderPage />} />
 
+        {/* 管理員儀表板 */}
+        <Route path="/admin" element={<AdminDashboard />} />
+
+        {/* 管理員頁面：餐廳管理 */}
+        <Route path="/admin/restaurants" element={<AdminPage />} />
+
         {/* 管理員頁面：菜單匯入工具 */}
-        <Route path="/importer" element={<ImporterPage />} />
+        <Route path="/admin/importer" element={<ImporterPage />} />
       </Routes>
 
       {/* 管理員連結（隱藏在頁面底部） */}
@@ -28,7 +36,7 @@ function AdminLink() {
   return (
     <div className="fixed bottom-4 right-4 z-10">
       <Link
-        to="/importer"
+        to="/admin"
         className="inline-flex items-center px-3 py-2 text-xs text-gray-500 hover:text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-all"
         title="管理員專用"
       >

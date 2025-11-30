@@ -1,4 +1,5 @@
 import { useState, useEffect, type ChangeEvent } from 'react';
+import { Link } from 'react-router-dom';
 import PasswordDialog from '../components/PasswordDialog';
 import ValidationErrorList from '../components/ValidationErrorList';
 import MenuDataPreview from '../components/MenuDataPreview';
@@ -156,13 +157,19 @@ export default function ImporterPage() {
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-stone-100 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
         {/* 標題 */}
-        <div className="mb-6">
+        <div className="mb-6 text-center relative">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             菜單資料匯入工具
           </h1>
           <p className="text-gray-600">
             將 Gemini AI 產生的 JSON 格式菜單資料匯入 Google Sheets
           </p>
+          <Link
+            to="/admin"
+            className="absolute right-0 top-0 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-300 rounded-lg hover:shadow-sm transition-all"
+          >
+            返回管理台
+          </Link>
         </div>
 
         {/* 結果通知 */}
@@ -193,11 +200,11 @@ export default function ImporterPage() {
                 餐廳資訊
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-4 text-left">
                 <div>
                   <label
                     htmlFor="restaurantName"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-700 mb-1 text-left"
                   >
                     餐廳名稱 <span className="text-red-500">*</span>
                   </label>
@@ -206,7 +213,7 @@ export default function ImporterPage() {
                     id="restaurantName"
                     value={restaurantName}
                     onChange={(e) => setRestaurantName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
                     placeholder="例如：美味牛肉麵"
                     disabled={isImporting}
                   />
@@ -215,7 +222,7 @@ export default function ImporterPage() {
                 <div>
                   <label
                     htmlFor="menuImageUrl"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-700 mb-1 text-left"
                   >
                     菜單圖片網址（選填）
                   </label>
@@ -224,7 +231,7 @@ export default function ImporterPage() {
                     id="menuImageUrl"
                     value={menuImageUrl}
                     onChange={(e) => setMenuImageUrl(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
                     placeholder="https://example.com/menu.jpg"
                     disabled={isImporting}
                   />

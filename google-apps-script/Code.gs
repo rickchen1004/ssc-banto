@@ -7,16 +7,35 @@
  */
 
 /**
- * 處理 GET 請求 - 讀取設定資料
- * 當前端應用程式需要載入菜單和餐點資料時會呼叫這個函數
+ * 處理 GET 請求 - 讀取設定資料或餐廳列表
+ * 根據 action 參數決定執行哪個操作：
+ * - 沒有 action：讀取設定資料（預設行為）
+ * - action=getRestaurants：讀取所有餐廳列表
  * 
- * @param {Object} e - 事件參數（本函數不使用）
+ * @param {Object} e - 事件參數
  * @return {TextOutput} JSON 格式的回應
  */
 function doGet(e) {
   try {
     // 取得目前的試算表
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 檢查是否有 action 參數
+    const action = e && e.parameter && e.parameter.action;
+    
+    // 如果 action 是 getRestaurants，回傳餐廳列表
+    if (action === 'getRestaurants') {
+      return getRestaurantsList(ss);
+    }
+    
+    // 如果 action 是 toggleRestaurant，切換餐廳狀態
+    if (action === 'toggleRestaurant') {
+      const restaurantName = e.parameter.restaurantName;
+      if (!restaurantName) {
+        throw new Error('缺少餐廳名稱參數');
+      }
+      return toggleRestaurantStatus(restaurantName);
+    }
     
     // === 步驟 1: 讀取設定工作表 ===
     const configSheet = ss.getSheetByName('設定');
@@ -47,7 +66,7 @@ function doGet(e) {
     
     // 檢查是否找到啟用的餐廳
     if (!todayRestaurant) {
-      throw new Error('請在設定工作表中將至少一家餐廳的「啟用」欄位設為 TRUE');
+      throw new Error('尚未開放點餐');
     }
     
     if (!menuImageUrl) {
@@ -314,6 +333,10 @@ function doPost(e) {
       // 處理菜單匯入
       Logger.log('執行菜單匯入');
       return handleImportMenu(requestData.data);
+    } else if (requestData.action === 'toggleRestaurant') {
+      // 處理餐廳開關切換
+      Logger.log('執行餐廳開關切換');
+      return toggleRestaurantStatus(requestData.restaurantName);
     } else if (requestData.order) {
       // 處理訂單提交（向後相容）
       Logger.log('執行訂單提交');
@@ -554,4 +577,132 @@ function testDoPost() {
   
   Logger.log('');
   Logger.log('========================================');
+}
+
+
+/**
+ * 取得所有餐廳列表
+ * 
+ * @param {Spreadsheet} ss - 試算表物件
+ * @return {TextOutput} JSON 格式的回應
+ */
+function getRestaurantsList(ss) {
+  try {
+    const configSheet = ss.getSheetByName('設定');
+    if (!configSheet) {
+      throw new Error('找不到「設定」工作表');
+    }
+    
+    // 讀取所有設定資料（包含標題行）
+    const configData = configSheet.getDataRange().getValues();
+    
+    // 解析餐廳列表（從第 2 行開始，跳過標題行）
+    const restaurants = [];
+    
+    for (let i = 1; i < configData.length; i++) {
+      const row = configData[i];
+      // row[0] = 餐廳名稱, row[1] = 菜單圖片網址, row[2] = 啟用
+      
+      if (row[0]) {  // 確保有餐廳名稱
+        const isEnabled = row[2] === true || row[2] === 'TRUE' || row[2] === 1;
+        
+        restaurants.push({
+          name: row[0],
+          menuImageUrl: row[1] || '',
+          enabled: isEnabled
+        });
+      }
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: true,
+        data: restaurants
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    Logger.log('getRestaurantsList 錯誤: ' + error.toString());
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: false,
+        error: error.toString()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 切換餐廳啟用狀態
+ * 啟用指定餐廳時，會自動關閉其他所有餐廳
+ * 
+ * @param {string} restaurantName - 要切換的餐廳名稱
+ * @return {TextOutput} JSON 格式的回應
+ */
+function toggleRestaurantStatus(restaurantName) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const configSheet = ss.getSheetByName('設定');
+    
+    if (!configSheet) {
+      throw new Error('找不到「設定」工作表');
+    }
+    
+    // 讀取所有設定資料
+    const configData = configSheet.getDataRange().getValues();
+    
+    // 找到目標餐廳的行號和當前狀態
+    let targetRow = -1;
+    let currentStatus = false;
+    
+    for (let i = 1; i < configData.length; i++) {
+      if (configData[i][0] === restaurantName) {
+        targetRow = i + 1;  // Google Sheets 行號從 1 開始
+        currentStatus = configData[i][2] === true || configData[i][2] === 'TRUE' || configData[i][2] === 1;
+        break;
+      }
+    }
+    
+    if (targetRow === -1) {
+      throw new Error('找不到餐廳：' + restaurantName);
+    }
+    
+    // 計算新狀態
+    const newStatus = !currentStatus;
+    
+    // 如果要啟用這家餐廳，先關閉所有其他餐廳
+    if (newStatus) {
+      for (let i = 1; i < configData.length; i++) {
+        const row = i + 1;
+        configSheet.getRange(row, 3).setValue(false);
+      }
+    }
+    
+    // 設定目標餐廳的狀態
+    configSheet.getRange(targetRow, 3).setValue(newStatus);
+    
+    Logger.log('餐廳狀態已更新：' + restaurantName + ' -> ' + newStatus);
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: true,
+        message: '更新成功',
+        data: {
+          restaurantName: restaurantName,
+          enabled: newStatus
+        }
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    Logger.log('toggleRestaurantStatus 錯誤: ' + error.toString());
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: false,
+        error: error.toString()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
